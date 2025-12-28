@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HealthCare AI</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+<body onload="locationAlert()">
+
+<header class="header">
+  <div class="left-section">
+    <button class="icon-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+  <h2 class="title">Smart AI Health Care</h2>
+  </div>
+   <a href="#" class="emergency-btn pulse" onclick="confirmEmergency()"><i class="fas fa-triangle-exclamation"></i> Emergency</a>
+
+</header>
+<main class="content">
+
+<div class="search-container">
+
+  <input type="text" placeholder="Enter symptoms .....(e.g. fever, cold)" id="searchText">
+
+  <!-- Camera capture -->
+  <label for="cameraInput" class="image-btn" title="Open Camera"><i class="fas fa-camera"></i></label>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+  <button onclick="handleSearch()">Search</button>
+  
+</div>
+
+<div id="resultCard" class="result-card" style="display:none;">
+  <h3 id="diseaseName"></h3>
+  <p id="diseaseInfo"></p>
+</div>
+
+<div id="map-section" style="display:none; margin-top:20px;">
+  <h3><i class="fas fa-hospital"></i> Nearby Hospitals</h3>
+  <iframe
+    id="maps-frame"
+    width="64%"
+    height="400"
+    style="border:0; border-radius:12px;"
+    loading="lazy">
+  </iframe>
+</div>
+<!-- AI Prediction Card -->
+<div class="right-content">
+  <div class="ai-card">
+    <h3><i class="fas fa-brain"></i> AI Assistant</h3>
+    <p>Enter your symptoms and let our AI suggest the likely disease, doctor, and home remedies!</p>
+
+    <textarea id="aiSymptoms" rows="4" placeholder="E.g., fever, cough, headache"></textarea>
+    <button onclick="predictAI()">Predict Disease</button>
+
+    <div class="result" id="aiResult" style="display: none;">
+        <h4>Prediction Result</h4>
+        <p><strong>Disease:</strong> <span id="aiDisease"></span></p>
+        <p><strong>Suggested Doctor:</strong> <span id="aiDoctor"></span></p>
+        <p><strong>Home Remedies:</strong></p>
+        <ul id="aiRemedies"></ul>
+        <p><strong>Recommended Foods:</strong></p>
+        <ul id="aiFoods"></ul>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="menu-container" id="menuContainer">
+  <div onclick="changeCategory('public')"><i class="fas fa-hospital"></i> Public Hospitals</div>
+  <div onclick="changeCategory('private')"><i class="fas fa-hotel"></i> Private Hospitals</div>
+  <div onclick="changeCategory('clinic')"><i class="fas fa-vial"></i> Clinics</div>
+</div>
+<script src="script.js"></script>
+
+</body>
+</html>
