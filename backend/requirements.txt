@@ -6,4 +6,6 @@ pillow
 pandas
 scikit-learn
 google-generativeai
+fuzzywuzzy
+python-Levenshtein
 gunicorn
