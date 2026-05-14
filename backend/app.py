@@ -10,7 +10,7 @@ from rules import rule_based_prediction
 import google.generativeai as genai
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 
 # Strict System Prompt Rule Definition to maintain clinical guardrails
