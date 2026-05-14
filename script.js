@@ -1,7 +1,6 @@
 /************ GLOBAL STATE ************/
 let currentLat = null;
 let currentLng = null;
-let predictedDisease = null;
 let currentCategory = "hospital";
 
 /************ LOCATION ************/
@@ -59,8 +58,8 @@ function handleSearch() {
     alert("Enter symptoms");
     return;
   }
-
-  fetch("http://127.0.0.1:5000/predict", {
+const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
+  fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ symptoms })
@@ -94,71 +93,6 @@ function handleSearch() {
 }
 
 /************ AI PREDICTION (WITHOUT MAP) ************/
-async function predictAI() {
-    const symptoms = document.getElementById("aiSymptoms").value.trim();
-    if (!symptoms) {
-        alert("Please enter your symptoms!");
-        return;
-    }
-
-    // Show loading
-    const aiResultDiv = document.getElementById("aiResult");
-    aiResultDiv.style.display = "block";
-    aiResultDiv.innerHTML = "Analyzing...";
-
-    // Choose backend URL: local or ngrok
-    //const backendUrl = "http://127.0.0.1:5000/predict"; 
-    // If using ngrok, replace with: 
-    const backendUrl = "https://neva-nonoxidizable-guilefully.ngrok-free.dev/predict";
-
-    try {
-        const response = await fetch(backendUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ symptoms })
-        });
-
-        if (!response.ok) {
-            aiResultDiv.innerHTML = "Error: Server returned " + response.status;
-            return;
-        }
-
-        const data = await response.json();
-
-        // Fill the AI result
-        document.getElementById("aiDisease").innerText = data.predicted_disease || "N/A";
-        document.getElementById("aiDoctor").innerText = data.suggested_doctor || "N/A";
-
-        const remediesList = document.getElementById("aiRemedies");
-        remediesList.innerHTML = "";
-        if (data.home_remedies && data.home_remedies.length > 0) {
-            data.home_remedies.forEach(remedy => {
-                const li = document.createElement("li");
-                li.textContent = remedy;
-                remediesList.appendChild(li);
-            });
-        } else {
-            remediesList.innerHTML = "<li>N/A</li>";
-        }
-
-        const foodsList = document.getElementById("aiFoods");
-        foodsList.innerHTML = "";
-        if (data.recommended_foods && data.recommended_foods.length > 0) {
-            data.recommended_foods.forEach(food => {
-                const li = document.createElement("li");
-                li.textContent = food;
-                foodsList.appendChild(li);
-            });
-        } else {
-            foodsList.innerHTML = "<li>N/A</li>";
-        }
-
-    } catch (err) {
-        console.error(err);
-        aiResultDiv.innerHTML = "Error: Cannot connect to AI backend.";
-    }
-}
-
 
 /************ EMERGENCY BUTTON ************/
 function confirmEmergency() {
@@ -186,4 +120,91 @@ window.onload = function() {
     }
   });
 };
+function toggleChat() {
+  const chatWindow = document.getElementById("chatWindow");
+  const toggleBtn = document.getElementById("chatToggleBtn");
+  
+  if (chatWindow.style.display === "none") {
+    chatWindow.style.display = "flex";
+    chatWindow.classList.add("slide-in");
+    toggleBtn.style.transform = "scale(0)";
+    setTimeout(() => toggleBtn.style.display = "none", 200);
+  } else {
+    chatWindow.classList.remove("slide-in");
+    toggleBtn.style.display = "flex";
+    setTimeout(() => toggleBtn.style.transform = "scale(1)", 10);
+    chatWindow.style.display = "none";
+  }
+}
 
+function handleChatKey(event) {
+  if (event.key === "Enter")  {
+    event.preventDefault(); // Stop the browser from refreshing the page!
+    sendChatMessage();
+  }
+}
+
+async function sendChatMessage(event) {
+    if (event) event.preventDefault();
+  const inputEl = document.getElementById("chatInput");
+  const messageText = inputEl.value.trim();
+  if (!messageText) return;
+
+  const msgContainer = document.getElementById("chatMessages");
+
+  // User Message Assembly
+  const userMsg = document.createElement("div");
+  userMsg.className = "message user-msg animate-bubble";
+  userMsg.innerHTML = `<div class="msg-text">${escapeHTML(messageText)}</div>`;
+  msgContainer.appendChild(userMsg);
+  
+  inputEl.value = "";
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  // Typing Placeholder Assembly
+  const loadingId = "loading-" + Date.now();
+  const loadingMsg = document.createElement("div");
+  loadingMsg.className = "message bot-msg loading animate-bubble";
+  loadingMsg.id = loadingId;
+  loadingMsg.innerHTML = `<i class="fas fa-robot msg-icon"></i><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  msgContainer.appendChild(loadingMsg);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  // Base URL Setup (Updates directly to your assigned public domain URL when deployed on Render)
+  const targetChatRoute = "https://ai-smart-health-assistant-backend.onrender.com/chat";
+   try {
+    const response = await fetch(targetChatRoute, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: messageText })
+    });
+
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) msgContainer.removeChild(loadingEl);
+     const data = await response.json();
+    if (!response.ok) throw new Error();    
+    // Bot Dynamic Markdown Message Assembly
+    const botMsg = document.createElement("div");
+    botMsg.className = "message bot-msg animate-bubble";
+    botMsg.innerHTML = `
+      <i class="fas fa-robot msg-icon"></i>
+      <div class="msg-text">${marked.parse(data.reply)}</div>
+    `;
+    msgContainer.appendChild(botMsg);
+
+  } catch (error) {
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) msgContainer.removeChild(loadingEl);
+
+    const errorMsg = document.createElement("div");
+    errorMsg.className = "message bot-msg system-error";
+    errorMsg.innerHTML = `<i class="fas fa-exclamation-triangle msg-icon"></i><div class="msg-text">Connection down. Please verify server deployment settings.</div>`;
+    msgContainer.appendChild(errorMsg);
+  }
+
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+}

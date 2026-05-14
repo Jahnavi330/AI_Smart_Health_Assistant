@@ -2,8 +2,6 @@ __pycache__/
 venv/
 *.pyc
 .env
-*.h5
-*.pkl
 node_modules
 training/
 

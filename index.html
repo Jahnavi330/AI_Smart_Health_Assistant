@@ -14,13 +14,13 @@
   <h2 class="title">Smart AI Health Care</h2>
   </div>
    <a href="#" class="emergency-btn pulse" onclick="confirmEmergency()"><i class="fas fa-triangle-exclamation"></i> Emergency</a>
-
+   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </header>
 <main class="content">
 
 <div class="search-container">
 
-  <input type="text" placeholder="Enter symptoms .....(e.g. fever, cold)" id="searchText">
+  <input type="text" id="searchText" placeholder="Enter symptoms .....(e.g. fever, cold)" id="searchText">
 
   <!-- Camera capture -->
   <label for="cameraInput" class="image-btn" title="Open Camera"><i class="fas fa-camera"></i></label>
@@ -45,26 +45,45 @@
     loading="lazy">
   </iframe>
 </div>
-<!-- AI Prediction Card -->
-<div class="right-content">
-  <div class="ai-card">
-    <h3><i class="fas fa-brain"></i> AI Assistant</h3>
-    <p>Enter your symptoms and let our AI suggest the likely disease, doctor, and home remedies!</p>
+<!-- Floating Chatbot Widget -->
+<div class="chatbot-container" id="chatbotContainer">
+  <!-- Interactive Trigger Badge -->
+  <button class="chat-toggle-btn" id="chatToggleBtn" onclick="toggleChat()" aria-label="Open Health Assistant">
+    <i class="fas fa-comment-medical"></i>
+    <span class="pulse-ring"></span>
+  </button>
 
-    <textarea id="aiSymptoms" rows="4" placeholder="E.g., fever, cough, headache"></textarea>
-    <button onclick="predictAI()">Predict Disease</button>
+  <!-- Complete Chat Window Architecture -->
+  <div class="chat-window" id="chatWindow" style="display: none;">
+    <div class="chat-header">
+      <div class="chat-bot-profile">
+        <div class="avatar-status">
+          <i class="fas fa-user-md"></i>
+          <span class="status-dot online"></span>
+        </div>
+        <div>
+          <h4>Smart Health AI</h4>
+          <small>Medical Assistant AI</small>
+        </div>
+      </div>
+      <button class="chat-close-btn" onclick="toggleChat()" aria-label="Close Chat"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot-msg">
+        <i class="fas fa-robot msg-icon"></i>
+        <div class="msg-text">Hello! I am your AI health assistant. Feel free to ask general questions about symptoms, wellness, or healthy habits. How can I help you today?</div>
+      </div>
+    </div>
 
-    <div class="result" id="aiResult" style="display: none;">
-        <h4>Prediction Result</h4>
-        <p><strong>Disease:</strong> <span id="aiDisease"></span></p>
-        <p><strong>Suggested Doctor:</strong> <span id="aiDoctor"></span></p>
-        <p><strong>Home Remedies:</strong></p>
-        <ul id="aiRemedies"></ul>
-        <p><strong>Recommended Foods:</strong></p>
-        <ul id="aiFoods"></ul>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Ask about symptoms, remedies..." onkeypress="handleChatKey(event)" autocomplete="off">
+      <button onclick="sendChatMessage(event)" id="chatSendBtn" title="Send Message"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
 </div>
+
+<!-- Include Markdown parsing script inside head or before this widget for rendering rich text formatting -->
 
 </main>
 
