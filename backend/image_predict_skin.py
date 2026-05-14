@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.preprocessing import image
+from keras.preprocessing import image 
 
 # ---------- PATHS ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

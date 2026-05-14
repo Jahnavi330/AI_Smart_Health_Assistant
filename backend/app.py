@@ -7,13 +7,46 @@ import numpy as np
 import tensorflow as tf
 from fuzzywuzzy import process
 from rules import rule_based_prediction
+import google.generativeai as genai
 
 app = Flask(__name__)
 CORS(app)
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 
+# Strict System Prompt Rule Definition to maintain clinical guardrails
+SYSTEM_INSTRUCTION = (
+    "You are an expert AI medical advisor widget integrated into a disease prediction site. "
+    "Analyze user questions regarding symptoms structurally. Offer clear, markdown-formatted information "
+    "including bullet points on helpful lifestyle modifications, tracking factors, and home precautions. "
+    "CRITICAL MANDATE: Provide a prominent bold disclaimer statement noting that your advice is strictly "
+    "educational, does not represent standard definitive medical diagnoses, and requires professional consulting if severe."
+)
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_INSTRUCTION
+)
+
+@app.route('/chat', methods=['POST'])
+def chatbot_endpoint():
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "").strip()
+        
+        if not user_message:
+            return jsonify({"reply": "I did not receive any message context. Please try typing again."}), 400
+            
+        # Call the Google Gemini API directly
+        response = model.generate_content(user_message)
+        return jsonify({"reply": response.text})
+        
+    except Exception as e:
+        print(f"Chatbot Error: {str(e)}")
+        return jsonify({"reply": "I encountered a system routing error. Please consult directly with local clinic resources if symptoms are severe."}), 500
+    
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(BASE_DIR, "..", "ml", "model.h5")
+MODEL_PATH = "model.h5"
 LABELS_PATH = os.path.join(BASE_DIR, "..", "ml", "labels.json")
 SYMPTOMS_PATH = os.path.join(BASE_DIR, "..", "ml", "symptoms.pkl")
 
