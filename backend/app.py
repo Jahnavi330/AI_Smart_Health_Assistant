@@ -22,7 +22,7 @@ SYSTEM_INSTRUCTION = (
     "educational, does not represent standard definitive medical diagnoses, and requires professional consulting if severe."
 )
 
-model = genai.GenerativeModel(
+chatbot_model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_INSTRUCTION
 )
@@ -37,7 +37,7 @@ def chatbot_endpoint():
             return jsonify({"reply": "I did not receive any message context. Please try typing again."}), 400
             
         # Call the Google Gemini API directly
-        response = model.generate_content(user_message)
+        response = chatbot_model.generate_content(user_message)
         return jsonify({"reply": response.text})
         
     except Exception as e:
