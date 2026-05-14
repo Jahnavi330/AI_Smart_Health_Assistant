@@ -10,7 +10,7 @@ from rules import rule_based_prediction
 import google.generativeai as genai
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}) 
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True) 
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 
 # Strict System Prompt Rule Definition to maintain clinical guardrails
@@ -30,6 +30,7 @@ chatbot_model = genai.GenerativeModel(
 @app.route('/chat', methods=['POST'])
 def chatbot_endpoint():
     try:
+        
         data = request.get_json()
         user_message = data.get("message", "").strip()
         
