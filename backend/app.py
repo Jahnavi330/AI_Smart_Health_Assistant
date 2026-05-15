@@ -11,7 +11,9 @@ from predict import predict_disease
 import google.generativeai as genai
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True) 
+CORS(app, resources={r"/*": {
+    "origins": ["https://jahnavi330.github.io", "http://127.0.0.1:3000", "http://localhost:3000"]
+}}, supports_credentials=True)
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 
 # Strict System Prompt Rule Definition to maintain clinical guardrails
