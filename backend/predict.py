@@ -21,9 +21,16 @@ def text_to_vector(text):
     vector = np.zeros(len(symptom_cols))
 
     for s in symptoms:
-        match, score = process.extractOne(s, symptom_cols)
-        if score > 70:
-            vector[symptom_cols.index(match)] = 1
+        if not s:  # Skip empty entries or extra commas
+            continue
+            
+        result = process.extractOne(s, symptom_cols)
+        
+        # ADD THIS SAFETY CHECK: Only unpack if fuzzywuzzy found a valid match
+        if result:
+            match, score = result
+            if score > 70:
+                vector[symptom_cols.index(match)] = 1
 
     return vector.reshape(1, -1)
 
