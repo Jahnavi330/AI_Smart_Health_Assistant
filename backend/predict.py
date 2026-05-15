@@ -5,14 +5,14 @@ import tensorflow as tf
 from fuzzywuzzy import process
 
 # Load model
-model = tf.keras.models.load_model("ml/model.h5")
+model = tf.keras.models.load_model("model.h5")
 
 # Load labels
-with open("ml/labels.json", "r") as f:
+with open("labels.json", "r") as f:
     labels = json.load(f)
 
 # Load symptoms
-with open("ml/symptoms.pkl", "rb") as f:
+with open("symptoms.pkl", "rb") as f:
     symptom_cols = pickle.load(f)
 
 
