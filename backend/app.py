@@ -92,20 +92,27 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
-    if not data or "symptoms" not in data:
-        return jsonify({"error": "No symptoms provided"}), 400
+    try:
+        data = request.get_json()
+        if not data or "symptoms" not in data:
+            return jsonify({"error": "No symptoms provided"}), 400
 
-    symptoms = data["symptoms"]
+        symptoms = data["symptoms"]
 
-    rule_result = rule_based_prediction(symptoms)
-    if rule_result:
-        rule_result["source"] = "rule-based"
-        return jsonify(rule_result)
+        # 1. Run through your rule-based check engine first
+        rule_result = rule_based_prediction(symptoms)
+        if rule_result:
+            rule_result["source"] = "rule-based"
+            return jsonify(rule_result)
 
-    result = predict_disease(symptoms_text=symptoms)
-    result["source"] = "ml-model"
-    return jsonify(result)
-
+        # 2. FIX: Change 'ml_predict(symptoms)' to your imported 'predict_disease' function!
+        result = predict_disease(symptoms)
+        result["source"] = "ml-model"
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"CRITICAL MODEL ROUTE CRASH: {str(e)}")
+        return jsonify({"error": f"Internal predictive pipeline failure: {str(e)}"}), 500
 if __name__ == "__main__":
     app.run(debug=True)
