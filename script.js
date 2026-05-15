@@ -58,7 +58,7 @@ function handleSearch() {
     alert("Enter symptoms");
     return;
   }
-const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
+const predictUrl = "https://herokuapp.com";
   fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -171,7 +171,7 @@ async function sendChatMessage(event) {
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
   // Base URL Setup (Updates directly to your assigned public domain URL when deployed on Render)
-  const targetChatRoute = "https://ai-smart-health-assistant-backend.onrender.com/chat";
+  const targetChatRoute = "https://herokuapp.com";
    try {
     const response = await fetch(targetChatRoute, {
       method: "POST",
