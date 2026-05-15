@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 from fuzzywuzzy import process
 from rules import rule_based_prediction
+from predict import predict_disease
 import google.generativeai as genai
 
 app = Flask(__name__)
@@ -102,7 +103,7 @@ def predict():
         rule_result["source"] = "rule-based"
         return jsonify(rule_result)
 
-    result = ml_predict(symptoms)
+    result = predict_disease(symptoms)
     result["source"] = "ml-model"
     return jsonify(result)
 
