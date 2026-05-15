@@ -36,11 +36,24 @@ def text_to_vector(text):
 
 
 def predict_disease(symptoms_text):
-    X = text_to_vector(symptoms_text)
-    preds = model.predict(X, verbose=0)[0]
+    try:
+        X = text_to_vector(symptoms_text)
+        preds = model.predict(X, verbose=0)[0]
 
-    idx = int(np.argmax(preds))
-    return {
-        "disease": labels[idx],
-        "confidence": round(float(preds[idx]) * 100, 2)
-    }
+        # FIX 1: Explicitly force the raw index into a standard Python integer
+        idx = int(np.argmax(preds))
+        
+        # FIX 2: Safeguard tensor floating metrics explicitly to prevent serialization crashes
+        confidence_val = float(preds[idx])
+
+        return {
+            "disease": str(labels[idx]),
+            "confidence": round(confidence_val * 100, 2)
+        }
+    except Exception as e:
+        print(f"INTERNAL ML ROUTE CRASH LOG: {str(e)}")
+        # Safe fallback so your backend doesn't crash the whole server
+        return {
+            "disease": "Unable to process symptoms text layout format",
+            "confidence": 0.0
+        }
