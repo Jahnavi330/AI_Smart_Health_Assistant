@@ -48,7 +48,7 @@ def chatbot_endpoint():
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = "model.h5"
-LABELS_PATH = os.path.join(BASE_DIR, "..", "ml", "labels.json")
+LABELS_PATH = "labels.json"
 SYMPTOMS_PATH = "symptoms.pkl"
 
 model = tf.keras.models.load_model(MODEL_PATH)
