@@ -103,7 +103,7 @@ def predict():
         rule_result["source"] = "rule-based"
         return jsonify(rule_result)
 
-    result = predict_disease(symptoms)
+    result = predict_disease(symptoms_text=symptoms)
     result["source"] = "ml-model"
     return jsonify(result)
 
