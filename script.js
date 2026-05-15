@@ -2,7 +2,7 @@
 let currentLat = null;
 let currentLng = null;
 let currentCategory = "hospital";
-
+let predictedDisease = null
 /************ LOCATION ************/
 function getUserLocation(callback) {
   if (!navigator.geolocation) {
@@ -206,5 +206,11 @@ async function sendChatMessage(event) {
 }
 
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  return str.replace(/[&<>'"]/g, tag => ({ 
+    '&': '&amp;', 
+    '<': '&lt;', 
+    '>': '&gt;', 
+    "'": '&#39;', // Fixed the unclosed single quote bug
+    '"': '&quot;' 
+  }[tag] || tag));
 }
