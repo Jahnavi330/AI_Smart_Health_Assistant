@@ -2,7 +2,8 @@
 let currentLat = null;
 let currentLng = null;
 let currentCategory = "hospital";
-let predictedDisease = null
+let predictedDisease = null;
+
 /************ LOCATION ************/
 function getUserLocation(callback) {
   if (!navigator.geolocation) {
@@ -58,26 +59,27 @@ function handleSearch() {
     alert("Enter symptoms");
     return;
   }
-const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
+  const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
   fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ "symptoms": symptoms })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error("Server communication fault");
+    return res.json();
+  })
   .then(data => {
-    // Show disease info
     document.getElementById("resultCard").style.display = "block";
-    document.getElementById("diseaseName").innerText = `🩺 ${data.disease}`;
+    document.getElementById("diseaseName").innerText = `🩺 ${data.disease || "Unknown Condition"}`;
 
     let info = "";
     if (data.info) info += data.info + "\n";
     if (data.confidence) info += `Confidence: ${data.confidence}%\n`;
     if (data.source) info += `Source: ${data.source}`;
 
-    document.getElementById("diseaseInfo").innerText = info;
+    document.getElementById("diseaseInfo").innerText = info || "No extra data structural logs provided.";
 
-    // Update map with nearby hospitals
     predictedDisease = data.disease;
     if (currentLat && currentLng) {
       updateMap();
@@ -85,14 +87,14 @@ const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predi
       getUserLocation(updateMap);
     }
 
-    // Show menu after search
     const menu = document.getElementById("menuContainer");
-    menu.style.display = "flex";  // or "block" depending on your CSS
+    if (menu) menu.style.display = "flex";
   })
-  .catch(() => alert("Backend not running"));
+  .catch((err) => {
+    console.error(err);
+    alert("Backend not running or calculation failed.");
+  });
 }
-
-/************ AI PREDICTION (WITHOUT MAP) ************/
 
 /************ EMERGENCY BUTTON ************/
 function confirmEmergency() {
@@ -103,23 +105,24 @@ function confirmEmergency() {
 
 /************ INITIALIZATION ************/
 window.onload = function() {
-  getUserLocation(); // start location tracking
+  getUserLocation();
 
   const menu = document.getElementById("menuContainer");
   const menuBtn = document.getElementById("menuBtn");
 
-  // Ensure menu starts hidden
-  menu.style.display = "none";
+  if (menu) menu.style.display = "none";
 
-  // Toggle menu on button click
-  menuBtn.addEventListener("click", () => {
-    if (menu.style.display === "none") {
-      menu.style.display = "flex"; // show menu
-    } else {
-      menu.style.display = "none"; // hide menu
-    }
-  });
+  if (menuBtn && menu) {
+    menuBtn.addEventListener("click", () => {
+      if (menu.style.display === "none") {
+        menu.style.display = "flex";
+      } else {
+        menu.style.display = "none";
+      }
+    });
+  }
 };
+
 function toggleChat() {
   const chatWindow = document.getElementById("chatWindow");
   const toggleBtn = document.getElementById("chatToggleBtn");
@@ -138,21 +141,20 @@ function toggleChat() {
 }
 
 function handleChatKey(event) {
-  if (event.key === "Enter")  {
-    event.preventDefault(); // Stop the browser from refreshing the page!
+  if (event.key === "Enter") {
+    event.preventDefault();
     sendChatMessage();
   }
 }
 
 async function sendChatMessage(event) {
-    if (event) event.preventDefault();
+  if (event) event.preventDefault();
   const inputEl = document.getElementById("chatInput");
   const messageText = inputEl.value.trim();
   if (!messageText) return;
 
   const msgContainer = document.getElementById("chatMessages");
 
-  // User Message Assembly
   const userMsg = document.createElement("div");
   userMsg.className = "message user-msg animate-bubble";
   userMsg.innerHTML = `<div class="msg-text">${escapeHTML(messageText)}</div>`;
@@ -161,7 +163,6 @@ async function sendChatMessage(event) {
   inputEl.value = "";
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  // Typing Placeholder Assembly
   const loadingId = "loading-" + Date.now();
   const loadingMsg = document.createElement("div");
   loadingMsg.className = "message bot-msg loading animate-bubble";
@@ -170,20 +171,20 @@ async function sendChatMessage(event) {
   msgContainer.appendChild(loadingMsg);
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  // Base URL Setup (Updates directly to your assigned public domain URL when deployed on Render)
   const targetChatRoute = "https://ai-smart-health-assistant-backend.onrender.com/chat";
-   try {
+  try {
     const response = await fetch(targetChatRoute, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: messageText })
+      body: JSON.stringify({ "message": messageText })
     });
 
     const loadingEl = document.getElementById(loadingId);
     if (loadingEl) msgContainer.removeChild(loadingEl);
-     const data = await response.json();
+    
+    const data = await response.json();
     if (!response.ok) throw new Error();    
-    // Bot Dynamic Markdown Message Assembly
+
     const botMsg = document.createElement("div");
     botMsg.className = "message bot-msg animate-bubble";
     botMsg.innerHTML = `
@@ -210,7 +211,7 @@ function escapeHTML(str) {
     '&': '&amp;', 
     '<': '&lt;', 
     '>': '&gt;', 
-    "'": '&#39;', // Fixed the unclosed single quote bug
+    "'": '&#39;', 
     '"': '&quot;' 
   }[tag] || tag));
 }
