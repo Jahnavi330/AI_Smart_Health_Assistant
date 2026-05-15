@@ -62,7 +62,7 @@ const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predi
   fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ symptoms })
+    body: JSON.stringify({ "symptoms": symptoms })
   })
   .then(res => res.json())
   .then(data => {
