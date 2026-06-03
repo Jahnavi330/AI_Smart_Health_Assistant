@@ -223,6 +223,11 @@ def predict():
         print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
 
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    print(f"Unhandled exception caught: {e}")
+    return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
