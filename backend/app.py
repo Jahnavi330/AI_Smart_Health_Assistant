@@ -133,8 +133,12 @@ def direct_ml_predict(symptoms):
         return {"disease": "Model Initializing", "confidence": 75.0}
     
     try:
+        print("Vectorizing symptoms")
         X = text_to_vector(symptoms)
+        print(f"Input vector sum: {int(X.sum())}, shape: {X.shape}")
+        print("Running model.predict()")
         preds = model.predict(X, verbose=0)
+        print("Prediction returned")
         idx = int(np.argmax(preds))
         confidence = float(preds[0][idx])
         return {
@@ -188,28 +192,35 @@ def status():
 def predict():
     try:
         data = request.get_json()
+        print(f"Predict request received: {data}")
         if not data or "symptoms" not in data:
+            print("Predict request missing symptoms")
             return jsonify({"error": "No symptoms provided"}), 400
 
         symptoms = data["symptoms"]
+        print(f"Predict symptoms payload: {symptoms}")
 
         # 1. Run your rules first
         try:
             rule_result = rule_based_prediction(symptoms)
             if rule_result and isinstance(rule_result, dict) and "disease" in rule_result:
                 rule_result["source"] = "rule-based"
+                print(f"Rule-based prediction returned: {rule_result}")
                 return jsonify(rule_result), 200
-        except Exception:
-            pass
+        except Exception as rule_exc:
+            print(f"Rule-based prediction error: {rule_exc}")
 
         # 2. Run the self-contained ML prediction directly in this file
+        print("Starting ML prediction")
         result = direct_ml_predict(symptoms)
+        print(f"ML prediction result: {result}")
         result["source"] = "ml-model"
         result["info"] = f"AI analysis complete for symptoms: {symptoms}."
         
         return jsonify(result), 200
         
     except Exception as e:
+        print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
 
 if __name__ == "__main__":
