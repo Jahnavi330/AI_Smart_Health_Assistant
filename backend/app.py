@@ -26,9 +26,12 @@ import sys
 
 # Try to load your rule-based backup file if it exists
 try:
-    from rules import rule_based_prediction
+    from backend.rules import rule_based_prediction
 except ImportError:
-    def rule_based_prediction(symptoms): return None
+    try:
+        from .rules import rule_based_prediction
+    except Exception:
+        def rule_based_prediction(symptoms): return None
 
 app = Flask(__name__)
 
