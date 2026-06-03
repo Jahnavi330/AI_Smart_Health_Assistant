@@ -57,15 +57,17 @@ SYMPTOMS_PATH = os.path.join(BASE_DIR, "symptoms.pkl")
 
 # Load your system files right here safely
 try:
-    model = tf.keras.models.load_model(MODEL_PATH)
+    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
     with open(LABELS_PATH, "r") as f:
         labels = json.load(f)
     with open(SYMPTOMS_PATH, "rb") as f:
         symptom_cols = pickle.load(f)
         symptom_cols_lower = [s.lower() for s in symptom_cols]
         symptom_lookup = {symptom: idx for idx, symptom in enumerate(symptom_cols_lower)}
+    print(f"Model load successful: model={MODEL_PATH}, labels={len(labels)}, symptoms={len(symptom_cols)}")
 except Exception as e:
     print(f"Asset loading log message: {str(e)}")
+    print(f"Model path: {MODEL_PATH}", f"Labels path: {LABELS_PATH}", f"Symptoms path: {SYMPTOMS_PATH}")
     model, labels, symptom_cols, symptom_cols_lower, symptom_lookup = None, [], [], [], {}
 
 
