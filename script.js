@@ -1,4 +1,9 @@
 /************ GLOBAL STATE ************/
+const USE_LOCAL_BACKEND = true; // set false to use deployed backend
+const LOCAL_BACKEND_HOST = "http://127.0.0.1:5000";
+const REMOTE_BACKEND_HOST = "https://ai-smart-health-assistant-backend.onrender.com";
+const BACKEND_HOST = USE_LOCAL_BACKEND ? LOCAL_BACKEND_HOST : REMOTE_BACKEND_HOST;
+
 let currentLat = null;
 let currentLng = null;
 let currentCategory = "hospital";
@@ -59,7 +64,7 @@ function handleSearch() {
     alert("Enter symptoms");
     return;
   }
-  const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
+  const predictUrl = `${BACKEND_HOST}/predict`;
   fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -92,8 +97,9 @@ function handleSearch() {
     if (menu) menu.style.display = "flex";
   })
   .catch((err) => {
-    console.error(err);
-    alert("Backend not running or calculation failed.");
+    console.error("Prediction request failed:", err);
+    const message = err?.message || "Backend not running or calculation failed.";
+    alert(`Prediction failed: ${message}`);
   });
 }
 
@@ -172,7 +178,7 @@ async function sendChatMessage(event) {
   msgContainer.appendChild(loadingMsg);
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  const targetChatRoute = "https://ai-smart-health-assistant-backend.onrender.com/chat";
+  const targetChatRoute = `${BACKEND_HOST}/chat`;
   try {
     const response = await fetch(targetChatRoute, {
       method: "POST",
