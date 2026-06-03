@@ -22,6 +22,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
 from fuzzywuzzy import fuzz, process
+import sys
 
 # Try to load your rule-based backup file if it exists
 try:
@@ -178,7 +179,9 @@ def status():
         "model_path": MODEL_PATH,
         "labels_path": LABELS_PATH,
         "symptoms_path": SYMPTOMS_PATH,
-        "last_load_error": last_load_error
+        "last_load_error": last_load_error,
+        "tensorflow_version": tf.__version__,
+        "python_version": sys.version
     }), 200
 
 @app.route("/predict", methods=["POST"])
