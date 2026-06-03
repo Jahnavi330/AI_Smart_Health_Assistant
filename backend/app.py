@@ -5,18 +5,23 @@ import pickle
 import numpy as np
 
 # Force low-memory usage for Render Free Tier to prevent out-of-memory crashes
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['TF_NUM_INTEROP_THREADS'] = '1'
 os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
+import tensorflow as tf
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import google.generativeai as genai
 from fuzzywuzzy import fuzz, process
-
-tf = None
-model = None
 
 # Try to load your rule-based backup file if it exists
 try:
@@ -30,14 +35,18 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.url_map.strict_slashes = False
 
-# Chatbot lazy initialization globals
-chatbot_model = None
+# Initialize the Gemini Engine
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 SYSTEM_INSTRUCTION = (
     "You are an expert AI medical advisor widget integrated into a disease prediction site. "
     "Analyze user questions regarding symptoms structurally. Offer clear, markdown-formatted information "
     "including bullet points on helpful lifestyle modifications, tracking factors, and home precautions. "
     "CRITICAL MANDATE: Provide a prominent bold disclaimer statement noting that your advice is strictly "
     "educational, does not represent standard definitive medical diagnoses, and requires professional consulting if severe."
+)
+chatbot_model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash",
+    system_instruction=SYSTEM_INSTRUCTION
 )
 
 # --- SELF-CONTAINED MACHINE LEARNING MODEL LOADING DATA ---
@@ -48,6 +57,7 @@ SYMPTOMS_PATH = os.path.join(BASE_DIR, "symptoms.pkl")
 
 # Load your system files right here safely
 try:
+    model = tf.keras.models.load_model(MODEL_PATH)
     with open(LABELS_PATH, "r") as f:
         labels = json.load(f)
     with open(SYMPTOMS_PATH, "rb") as f:
@@ -57,19 +67,6 @@ try:
 except Exception as e:
     print(f"Asset loading log message: {str(e)}")
     model, labels, symptom_cols, symptom_cols_lower, symptom_lookup = None, [], [], [], {}
-
-
-def get_tf_model():
-    global model
-    if model is not None:
-        return model
-
-    import importlib
-    tf_module = importlib.import_module("tensorflow")
-    tf_module.config.threading.set_inter_op_parallelism_threads(1)
-    tf_module.config.threading.set_intra_op_parallelism_threads(1)
-    model = tf_module.keras.models.load_model(MODEL_PATH, compile=False)
-    return model
 
 
 def normalize_symptom_token(token):
@@ -107,13 +104,12 @@ def text_to_vector(symptoms_text):
     return vector.reshape(1, -1)
 
 def direct_ml_predict(symptoms):
-    if not labels:
+    if model is None or not labels:
         return {"disease": "Model Initializing", "confidence": 75.0}
     
     try:
-        mdl = get_tf_model()
         X = text_to_vector(symptoms)
-        preds = mdl.predict(X, verbose=0)
+        preds = model.predict(X, verbose=0)
         idx = int(np.argmax(preds))
         confidence = float(preds[0][idx])
         return {
@@ -133,19 +129,6 @@ def direct_ml_predict(symptoms):
 def home():
     return jsonify({"message": "Health AI Backend Running"}), 200
 
-def get_chatbot_model():
-    global chatbot_model
-    if chatbot_model is not None:
-        return chatbot_model
-
-    import google.generativeai as genai
-    genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
-    chatbot_model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=SYSTEM_INSTRUCTION
-    )
-    return chatbot_model
-
 @app.route('/chat', methods=['POST'])
 def chatbot_endpoint():
     try:
@@ -153,8 +136,7 @@ def chatbot_endpoint():
         user_message = data.get("message", "").strip()
         if not user_message:
             return jsonify({"reply": "Empty query payload context."}), 400
-        chatbot = get_chatbot_model()
-        response = chatbot.generate_content(user_message)
+        response = chatbot_model.generate_content(user_message)
         return jsonify({"reply": response.text}), 200
     except Exception as e:
         return jsonify({"reply": f"Chatbot routing error: {str(e)}"}), 500
