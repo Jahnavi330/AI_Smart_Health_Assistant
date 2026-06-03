@@ -158,6 +158,17 @@ def chatbot_endpoint():
     except Exception as e:
         return jsonify({"reply": f"Chatbot routing error: {str(e)}"}), 500
 
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({
+        "model_loaded": model is not None,
+        "labels_count": len(labels),
+        "symptoms_count": len(symptom_cols),
+        "model_path": MODEL_PATH,
+        "labels_path": LABELS_PATH,
+        "symptoms_path": SYMPTOMS_PATH
+    }), 200
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
