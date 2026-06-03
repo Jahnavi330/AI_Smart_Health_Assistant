@@ -245,25 +245,8 @@ def predict():
     if request.method == 'HEAD':
         return jsonify({"status": "ready"}), 200
     if request.method == 'GET':
-        symptoms = (
-            request.args.get("symptoms", "")
-            or request.args.get("symptom", "")
-            or request.args.get("q", "")
-            or request.args.get("query", "")
-        ).strip()
-
-        if not symptoms and request.data:
-            try:
-                payload = request.get_json(silent=True)
-                if isinstance(payload, dict):
-                    symptoms = (payload.get("symptoms") or payload.get("symptom") or "").strip()
-            except Exception:
-                symptoms = ""
-
-        if symptoms:
-            return process_prediction_request(symptoms)
         return jsonify({
-            "message": "Predict endpoint expects POST with JSON payload. For quick GET usage, include ?symptoms=fever,cough or /predict/fever,cough"
+            "message": "Predict endpoint is POST-only for backend inference. Send JSON payload: {\"symptoms\": \"fever,cough\"}."
         }), 200
 
     try:
