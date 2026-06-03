@@ -70,12 +70,13 @@ function handleSearch() {
     return res.json();
   })
   .then(data => {
+    if (data.error) throw new Error(data.error);
     document.getElementById("resultCard").style.display = "block";
     document.getElementById("diseaseName").innerText = `🩺 ${data.disease || "Unknown Condition"}`;
 
     let info = "";
     if (data.info) info += data.info + "\n";
-    if (data.confidence) info += `Confidence: ${data.confidence}%\n`;
+    if (data.confidence !== undefined) info += `Confidence: ${data.confidence}%\n`;
     if (data.source) info += `Source: ${data.source}`;
 
     document.getElementById("diseaseInfo").innerText = info || "No extra data structural logs provided.";

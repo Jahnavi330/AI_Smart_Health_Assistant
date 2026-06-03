@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import pickle
 import numpy as np
@@ -14,6 +15,7 @@ tf.config.threading.set_intra_op_parallelism_threads(1)
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
+from fuzzywuzzy import fuzz, process
 
 # Try to load your rule-based backup file if it exists
 try:
@@ -54,38 +56,66 @@ try:
         labels = json.load(f)
     with open(SYMPTOMS_PATH, "rb") as f:
         symptom_cols = pickle.load(f)
+        symptom_cols_lower = [s.lower() for s in symptom_cols]
+        symptom_lookup = {symptom: idx for idx, symptom in enumerate(symptom_cols_lower)}
 except Exception as e:
     print(f"Asset loading log message: {str(e)}")
-    model, labels, symptom_cols = None, [], []
+    model, labels, symptom_cols, symptom_cols_lower, symptom_lookup = None, [], [], [], {}
+
+
+def normalize_symptom_token(token):
+    token = token.strip().lower()
+    token = re.sub(r"[^a-z0-9 ]+", "", token)
+    return token
+
 
 def text_to_vector(symptoms_text):
     symptoms_text = symptoms_text.lower()
-    input_symptoms = [s.strip() for s in symptoms_text.split(",")]
+    input_symptoms = re.split(r"[\n;,]+|\band\b", symptoms_text)
     
-    # Fallback to standard 132 symptoms if columns list fails to parse
     vector_len = len(symptom_cols) if symptom_cols else 132
     vector = np.zeros(vector_len)
     
     if symptom_cols:
-        for s in input_symptoms:
-            if s in symptom_cols:
-                idx = symptom_cols.index(s)
+        for token in input_symptoms:
+            clean_token = normalize_symptom_token(token)
+            if not clean_token:
+                continue
+            idx = symptom_lookup.get(clean_token)
+            if idx is None:
+                match = process.extractOne(clean_token, symptom_cols_lower, scorer=fuzz.token_set_ratio)
+                if match and match[1] >= 70:
+                    idx = symptom_lookup[match[0]]
+            if idx is not None:
                 vector[idx] = 1
+        
+        if vector.sum() == 0:
+            fallback_token = normalize_symptom_token(symptoms_text)
+            if fallback_token:
+                match = process.extractOne(fallback_token, symptom_cols_lower, scorer=fuzz.token_set_ratio)
+                if match and match[1] >= 70:
+                    vector[symptom_lookup[match[0]]] = 1
     return vector.reshape(1, -1)
 
 def direct_ml_predict(symptoms):
     if model is None or not labels:
         return {"disease": "Model Initializing", "confidence": 75.0}
     
-    X = text_to_vector(symptoms)
-    preds = model.predict(X, verbose=0)
-    idx = int(np.argmax(preds))
-    confidence = float(preds[0][idx])
-    
-    return {
-        "disease": labels[idx],
-        "confidence": round(confidence * 100, 2)
-    }
+    try:
+        X = text_to_vector(symptoms)
+        preds = model.predict(X, verbose=0)
+        idx = int(np.argmax(preds))
+        confidence = float(preds[0][idx])
+        return {
+            "disease": labels[idx],
+            "confidence": round(confidence * 100, 2)
+        }
+    except Exception as e:
+        print(f"ML prediction crash: {str(e)}")
+        return {
+            "disease": "Unable to process symptoms",
+            "confidence": 0.0
+        }
 
 # --- ENDPOINTS ---
 
