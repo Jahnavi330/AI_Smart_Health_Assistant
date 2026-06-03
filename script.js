@@ -1,9 +1,4 @@
 /************ GLOBAL STATE ************/
-const USE_LOCAL_BACKEND = false; // set false to use deployed backend
-const LOCAL_BACKEND_HOST = "http://127.0.0.1:5000";
-const REMOTE_BACKEND_HOST = "https://ai-smart-health-assistant-backend.onrender.com";
-const BACKEND_HOST = USE_LOCAL_BACKEND ? LOCAL_BACKEND_HOST : REMOTE_BACKEND_HOST;
-
 let currentLat = null;
 let currentLng = null;
 let currentCategory = "hospital";
@@ -64,18 +59,37 @@ function handleSearch() {
     alert("Enter symptoms");
     return;
   }
-  const predictUrl = `${BACKEND_HOST}/predict`;
+  const predictUrl = "https://ai-smart-health-assistant-backend.onrender.com/predict";
+  console.log("Sending predict request to", predictUrl, "payload", symptoms);
+
   fetch(predictUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ "symptoms": symptoms })
+    body: JSON.stringify({ "symptoms": symptoms }),
+    cache: "no-store"
   })
-  .then(res => {
-    if (!res.ok) throw new Error("Server communication fault");
-    return res.json();
-  })
-  .then(data => {
-    if (data.error) throw new Error(data.error);
+  .then(async res => {
+    const text = await res.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response: ${parseError.message} - response text: ${text}`);
+    }
+
+    if (!res.ok) {
+      const message = data && data.error ? data.error : res.statusText;
+      throw new Error(`Backend error ${res.status}: ${message}`);
+    }
+
+    if (data && data.error) {
+      throw new Error(`Prediction error: ${data.error}`);
+    }
+
+    if (!data) {
+      throw new Error("Empty backend response");
+    }
+
     document.getElementById("resultCard").style.display = "block";
     document.getElementById("diseaseName").innerText = `🩺 ${data.disease || "Unknown Condition"}`;
 
@@ -97,9 +111,8 @@ function handleSearch() {
     if (menu) menu.style.display = "flex";
   })
   .catch((err) => {
-    console.error("Prediction request failed:", err);
-    const message = err?.message || "Backend not running or calculation failed.";
-    alert(`Prediction failed: ${message}`);
+    console.error("Predict request failed:", err);
+    alert(`Backend request failed: ${err.message}`);
   });
 }
 
@@ -178,7 +191,7 @@ async function sendChatMessage(event) {
   msgContainer.appendChild(loadingMsg);
   msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  const targetChatRoute = `${BACKEND_HOST}/chat`;
+  const targetChatRoute = "https://ai-smart-health-assistant-backend.onrender.com/chat";
   try {
     const response = await fetch(targetChatRoute, {
       method: "POST",
