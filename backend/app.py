@@ -36,6 +36,13 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.url_map.strict_slashes = False
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,HEAD"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    return response
+
 # Initialize the Gemini Engine
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
 SYSTEM_INSTRUCTION = (
@@ -159,8 +166,15 @@ def direct_ml_predict(symptoms):
 def home():
     return jsonify({"message": "Health AI Backend Running"}), 200
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['POST', 'OPTIONS', 'GET', 'HEAD'])
 def chatbot_endpoint():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "ok"}), 200
+    if request.method == 'GET':
+        return jsonify({"message": "Chat endpoint expects POST."}), 200
+    if request.method == 'HEAD':
+        return jsonify({"status": "ready"}), 200
+
     try:
         data = request.get_json()
         user_message = data.get("message", "").strip()
@@ -188,8 +202,15 @@ def status():
         "python_version": sys.version
     }), 200
 
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST", "OPTIONS", "GET", "HEAD"])
 def predict():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "ok"}), 200
+    if request.method == 'GET':
+        return jsonify({"message": "Predict endpoint expects POST with JSON payload."}), 200
+    if request.method == 'HEAD':
+        return jsonify({"status": "ready"}), 200
+
     try:
         data = request.get_json()
         print(f"Predict request received: {data}")
@@ -222,6 +243,11 @@ def predict():
     except Exception as e:
         print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
+
+@app.errorhandler(405)
+def handle_method_not_allowed(e):
+    print(f"405 Method Not Allowed on {request.method} {request.path}")
+    return jsonify({"error": "Method not allowed. Use POST for /predict and /chat."}), 405
 
 @app.errorhandler(Exception)
 def handle_all_exceptions(e):
