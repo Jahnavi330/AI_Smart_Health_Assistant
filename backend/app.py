@@ -40,10 +40,6 @@ SYSTEM_INSTRUCTION = (
     "CRITICAL MANDATE: Provide a prominent bold disclaimer statement noting that your advice is strictly "
     "educational, does not represent standard definitive medical diagnoses, and requires professional consulting if severe."
 )
-chatbot_model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    system_instruction=SYSTEM_INSTRUCTION
-)
 
 # --- SELF-CONTAINED MACHINE LEARNING MODEL LOADING DATA ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
