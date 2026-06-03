@@ -17,7 +17,6 @@ tf.config.threading.set_intra_op_parallelism_threads(1)
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import google.generativeai as genai
 from fuzzywuzzy import fuzz, process
 
 # Try to load your rule-based backup file if it exists
@@ -32,8 +31,8 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.url_map.strict_slashes = False
 
-# Initialize the Gemini Engine
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
+# Chatbot lazy initialization globals
+chatbot_model = None
 SYSTEM_INSTRUCTION = (
     "You are an expert AI medical advisor widget integrated into a disease prediction site. "
     "Analyze user questions regarding symptoms structurally. Offer clear, markdown-formatted information "
@@ -126,6 +125,19 @@ def direct_ml_predict(symptoms):
 def home():
     return jsonify({"message": "Health AI Backend Running"}), 200
 
+def get_chatbot_model():
+    global chatbot_model
+    if chatbot_model is not None:
+        return chatbot_model
+
+    import google.generativeai as genai
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY", "YOUR_LOCAL_FALLBACK_KEY"))
+    chatbot_model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        system_instruction=SYSTEM_INSTRUCTION
+    )
+    return chatbot_model
+
 @app.route('/chat', methods=['POST'])
 def chatbot_endpoint():
     try:
@@ -133,7 +145,8 @@ def chatbot_endpoint():
         user_message = data.get("message", "").strip()
         if not user_message:
             return jsonify({"reply": "Empty query payload context."}), 400
-        response = chatbot_model.generate_content(user_message)
+        chatbot = get_chatbot_model()
+        response = chatbot.generate_content(user_message)
         return jsonify({"reply": response.text}), 200
     except Exception as e:
         return jsonify({"reply": f"Chatbot routing error: {str(e)}"}), 500
