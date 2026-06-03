@@ -60,14 +60,15 @@ except Exception as e:
 
 
 def get_tf_model():
-    global tf, model
+    global model
     if model is not None:
         return model
 
-    import tensorflow as tf as _tf
-    _tf.config.threading.set_inter_op_parallelism_threads(1)
-    _tf.config.threading.set_intra_op_parallelism_threads(1)
-    model = _tf.keras.models.load_model(MODEL_PATH, compile=False)
+    import importlib
+    tf_module = importlib.import_module("tensorflow")
+    tf_module.config.threading.set_inter_op_parallelism_threads(1)
+    tf_module.config.threading.set_intra_op_parallelism_threads(1)
+    model = tf_module.keras.models.load_model(MODEL_PATH, compile=False)
     return model
 
 
