@@ -205,14 +205,43 @@ def status():
         "python_version": sys.version
     }), 200
 
+
+def process_prediction_request(symptoms):
+    if not symptoms:
+        return jsonify({"error": "No symptoms provided"}), 400
+
+    print(f"Predict symptoms payload: {symptoms}")
+
+    try:
+        rule_result = rule_based_prediction(symptoms)
+        if rule_result and isinstance(rule_result, dict) and "disease" in rule_result:
+            rule_result["source"] = "rule-based"
+            print(f"Rule-based prediction returned: {rule_result}")
+            return jsonify(rule_result), 200
+    except Exception as rule_exc:
+        print(f"Rule-based prediction error: {rule_exc}")
+
+    print("Starting ML prediction")
+    result = direct_ml_predict(symptoms)
+    print(f"ML prediction result: {result}")
+    result["source"] = "ml-model"
+    result["info"] = f"AI analysis complete for symptoms: {symptoms}."
+    return jsonify(result), 200
+
+
 @app.route("/predict", methods=["POST", "OPTIONS", "GET", "HEAD"])
 def predict():
     if request.method == 'OPTIONS':
         return jsonify({"status": "ok"}), 200
-    if request.method == 'GET':
-        return jsonify({"message": "Predict endpoint expects POST with JSON payload."}), 200
     if request.method == 'HEAD':
         return jsonify({"status": "ready"}), 200
+    if request.method == 'GET':
+        symptoms = request.args.get("symptoms", "").strip()
+        if symptoms:
+            return process_prediction_request(symptoms)
+        return jsonify({
+            "message": "Predict endpoint expects POST with JSON payload. For quick GET usage, include ?symptoms=fever,cough"
+        }), 200
 
     try:
         data = request.get_json()
@@ -222,27 +251,7 @@ def predict():
             return jsonify({"error": "No symptoms provided"}), 400
 
         symptoms = data["symptoms"]
-        print(f"Predict symptoms payload: {symptoms}")
-
-        # 1. Run your rules first
-        try:
-            rule_result = rule_based_prediction(symptoms)
-            if rule_result and isinstance(rule_result, dict) and "disease" in rule_result:
-                rule_result["source"] = "rule-based"
-                print(f"Rule-based prediction returned: {rule_result}")
-                return jsonify(rule_result), 200
-        except Exception as rule_exc:
-            print(f"Rule-based prediction error: {rule_exc}")
-
-        # 2. Run the self-contained ML prediction directly in this file
-        print("Starting ML prediction")
-        result = direct_ml_predict(symptoms)
-        print(f"ML prediction result: {result}")
-        result["source"] = "ml-model"
-        result["info"] = f"AI analysis complete for symptoms: {symptoms}."
-        
-        return jsonify(result), 200
-        
+        return process_prediction_request(symptoms)
     except Exception as e:
         print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
