@@ -146,8 +146,10 @@ def direct_ml_predict(symptoms):
         print("Vectorizing symptoms")
         X = text_to_vector(symptoms)
         print(f"Input vector sum: {int(X.sum())}, shape: {X.shape}")
-        print("Running model.predict()")
-        preds = model.predict(X, verbose=0)
+        print("Running model inference")
+        preds = model(X, training=False)
+        if hasattr(preds, "numpy"):
+            preds = preds.numpy()
         print("Prediction returned")
         idx = int(np.argmax(preds))
         confidence = float(preds[0][idx])
@@ -245,19 +247,42 @@ def predict():
     if request.method == 'HEAD':
         return jsonify({"status": "ready"}), 200
     if request.method == 'GET':
+        symptoms = (
+            request.args.get("symptoms", "")
+            or request.args.get("symptom", "")
+            or request.args.get("q", "")
+            or request.args.get("query", "")
+        ).strip()
+        if symptoms:
+            return process_prediction_request(symptoms)
         return jsonify({
-            "message": "Predict endpoint is POST-only for backend inference. Send JSON payload: {\"symptoms\": \"fever,cough\"}."
+            "message": "Predict endpoint expects POST with JSON payload. For quick GET testing, use ?symptoms=fever,cough or /predict/fever,cough."
         }), 200
 
+    data = None
     try:
-        data = request.get_json()
-        print(f"Predict request received: {data}")
-        if not data or "symptoms" not in data:
-            print("Predict request missing symptoms")
-            return jsonify({"error": "No symptoms provided"}), 400
+        if request.is_json:
+            data = request.get_json(silent=True)
+        else:
+            raw = request.get_data(as_text=True)
+            if raw:
+                try:
+                    data = json.loads(raw)
+                except Exception:
+                    data = None
+        if not data and request.form:
+            data = request.form.to_dict()
+    except Exception as e:
+        print(f"JSON parse fallback error: {e}")
+        data = None
 
-        symptoms = data["symptoms"]
-        return process_prediction_request(symptoms)
+    print(f"Predict request received: {data}")
+    if not data or "symptoms" not in data:
+        print("Predict request missing symptoms")
+        return jsonify({"error": "No symptoms provided"}), 400
+
+    symptoms = data["symptoms"]
+    return process_prediction_request(symptoms)
     except Exception as e:
         print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
