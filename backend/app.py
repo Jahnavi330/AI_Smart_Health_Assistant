@@ -7,6 +7,9 @@ import numpy as np
 # Force low-memory usage for Render Free Tier to prevent out-of-memory crashes
 os.environ['TF_NUM_INTEROP_THREADS'] = '1'
 os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 import tensorflow as tf
 tf.config.threading.set_inter_op_parallelism_threads(1)
