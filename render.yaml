@@ -2,8 +2,9 @@ services:
   - type: web
     name: ai-smart-health-assistant
     env: python
+    pythonVersion: 3.11
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
     startCommand: gunicorn backend.app:app --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120
     envVars:
       - key: PYTHONUNBUFFERED
