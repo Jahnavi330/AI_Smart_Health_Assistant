@@ -61,10 +61,16 @@ labels = []
 symptom_cols = []
 symptom_cols_lower = []
 symptom_lookup = {}
+last_load_error = None
 
 def load_assets():
-    global model, labels, symptom_cols, symptom_cols_lower, symptom_lookup
+    global model, labels, symptom_cols, symptom_cols_lower, symptom_lookup, last_load_error
     try:
+        model_exists = os.path.exists(MODEL_PATH)
+        labels_exists = os.path.exists(LABELS_PATH)
+        symptoms_exists = os.path.exists(SYMPTOMS_PATH)
+        print(f"Asset files: model_exists={model_exists}, labels_exists={labels_exists}, symptoms_exists={symptoms_exists}")
+
         model = tf.keras.models.load_model(MODEL_PATH, compile=False)
         with open(LABELS_PATH, "r") as f:
             labels = json.load(f)
@@ -72,9 +78,11 @@ def load_assets():
             symptom_cols = pickle.load(f)
             symptom_cols_lower = [s.lower() for s in symptom_cols]
             symptom_lookup = {symptom: idx for idx, symptom in enumerate(symptom_cols_lower)}
+        last_load_error = None
         print(f"Model load successful: model={MODEL_PATH}, labels={len(labels)}, symptoms={len(symptom_cols)}")
     except Exception as e:
-        print(f"Asset loading log message: {str(e)}")
+        last_load_error = str(e)
+        print(f"Asset loading log message: {last_load_error}")
         print(f"Model path: {MODEL_PATH}", f"Labels path: {LABELS_PATH}", f"Symptoms path: {SYMPTOMS_PATH}")
         model, labels, symptom_cols, symptom_cols_lower, symptom_lookup = None, [], [], [], {}
 
@@ -164,9 +172,13 @@ def status():
         "model_loaded": model is not None,
         "labels_count": len(labels),
         "symptoms_count": len(symptom_cols),
+        "model_exists": os.path.exists(MODEL_PATH),
+        "labels_exists": os.path.exists(LABELS_PATH),
+        "symptoms_exists": os.path.exists(SYMPTOMS_PATH),
         "model_path": MODEL_PATH,
         "labels_path": LABELS_PATH,
-        "symptoms_path": SYMPTOMS_PATH
+        "symptoms_path": SYMPTOMS_PATH,
+        "last_load_error": last_load_error
     }), 200
 
 @app.route("/predict", methods=["POST"])
