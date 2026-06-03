@@ -1,5 +1,5 @@
 /************ GLOBAL STATE ************/
-const USE_LOCAL_BACKEND = true; // set false to use deployed backend
+const USE_LOCAL_BACKEND = false; // set false to use deployed backend
 const LOCAL_BACKEND_HOST = "http://127.0.0.1:5000";
 const REMOTE_BACKEND_HOST = "https://ai-smart-health-assistant-backend.onrender.com";
 const BACKEND_HOST = USE_LOCAL_BACKEND ? LOCAL_BACKEND_HOST : REMOTE_BACKEND_HOST;
