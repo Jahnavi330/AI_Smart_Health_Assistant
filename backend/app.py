@@ -229,6 +229,15 @@ def process_prediction_request(symptoms):
     return jsonify(result), 200
 
 
+@app.route("/predict/<path:symptoms>", methods=["GET", "OPTIONS", "HEAD"])
+def predict_path(symptoms):
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "ok"}), 200
+    if request.method == 'HEAD':
+        return jsonify({"status": "ready"}), 200
+    return process_prediction_request(symptoms)
+
+
 @app.route("/predict", methods=["POST", "OPTIONS", "GET", "HEAD"])
 def predict():
     if request.method == 'OPTIONS':
@@ -236,11 +245,25 @@ def predict():
     if request.method == 'HEAD':
         return jsonify({"status": "ready"}), 200
     if request.method == 'GET':
-        symptoms = request.args.get("symptoms", "").strip()
+        symptoms = (
+            request.args.get("symptoms", "")
+            or request.args.get("symptom", "")
+            or request.args.get("q", "")
+            or request.args.get("query", "")
+        ).strip()
+
+        if not symptoms and request.data:
+            try:
+                payload = request.get_json(silent=True)
+                if isinstance(payload, dict):
+                    symptoms = (payload.get("symptoms") or payload.get("symptom") or "").strip()
+            except Exception:
+                symptoms = ""
+
         if symptoms:
             return process_prediction_request(symptoms)
         return jsonify({
-            "message": "Predict endpoint expects POST with JSON payload. For quick GET usage, include ?symptoms=fever,cough"
+            "message": "Predict endpoint expects POST with JSON payload. For quick GET usage, include ?symptoms=fever,cough or /predict/fever,cough"
         }), 200
 
     try:
