@@ -11,13 +11,12 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
-import tensorflow as tf
-tf.config.threading.set_inter_op_parallelism_threads(1)
-tf.config.threading.set_intra_op_parallelism_threads(1)
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from fuzzywuzzy import fuzz, process
+
+tf = None
+model = None
 
 # Try to load your rule-based backup file if it exists
 try:
@@ -49,7 +48,6 @@ SYMPTOMS_PATH = os.path.join(BASE_DIR, "symptoms.pkl")
 
 # Load your system files right here safely
 try:
-    model = tf.keras.models.load_model(MODEL_PATH)
     with open(LABELS_PATH, "r") as f:
         labels = json.load(f)
     with open(SYMPTOMS_PATH, "rb") as f:
@@ -59,6 +57,18 @@ try:
 except Exception as e:
     print(f"Asset loading log message: {str(e)}")
     model, labels, symptom_cols, symptom_cols_lower, symptom_lookup = None, [], [], [], {}
+
+
+def get_tf_model():
+    global tf, model
+    if model is not None:
+        return model
+
+    import tensorflow as tf as _tf
+    _tf.config.threading.set_inter_op_parallelism_threads(1)
+    _tf.config.threading.set_intra_op_parallelism_threads(1)
+    model = _tf.keras.models.load_model(MODEL_PATH, compile=False)
+    return model
 
 
 def normalize_symptom_token(token):
@@ -96,12 +106,13 @@ def text_to_vector(symptoms_text):
     return vector.reshape(1, -1)
 
 def direct_ml_predict(symptoms):
-    if model is None or not labels:
+    if not labels:
         return {"disease": "Model Initializing", "confidence": 75.0}
     
     try:
+        mdl = get_tf_model()
         X = text_to_vector(symptoms)
-        preds = model.predict(X, verbose=0)
+        preds = mdl.predict(X, verbose=0)
         idx = int(np.argmax(preds))
         confidence = float(preds[0][idx])
         return {
