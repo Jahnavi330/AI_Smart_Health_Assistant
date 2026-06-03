@@ -276,13 +276,14 @@ def predict():
         print(f"JSON parse fallback error: {e}")
         data = None
 
-    print(f"Predict request received: {data}")
-    if not data or "symptoms" not in data:
-        print("Predict request missing symptoms")
-        return jsonify({"error": "No symptoms provided"}), 400
+    try:
+        print(f"Predict request received: {data}")
+        if not data or "symptoms" not in data:
+            print("Predict request missing symptoms")
+            return jsonify({"error": "No symptoms provided"}), 400
 
-    symptoms = data["symptoms"]
-    return process_prediction_request(symptoms)
+        symptoms = data["symptoms"]
+        return process_prediction_request(symptoms)
     except Exception as e:
         print(f"Predict route uncaught exception: {str(e)}")
         return jsonify({"error": f"Internal system crash: {str(e)}"}), 500
