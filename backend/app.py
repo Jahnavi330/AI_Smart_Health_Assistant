@@ -249,7 +249,10 @@ def process_prediction_request(symptoms):
     result = direct_ml_predict(symptoms)
     print(f"ML prediction result: {result}")
     result["source"] = "ml-model"
-    result["info"] = f"AI analysis complete for symptoms: {symptoms}."
+    if "info" not in result:
+        result["info"] = f"AI analysis complete for symptoms: {symptoms}."
+    else:
+        result["info"] = f"AI analysis complete for symptoms: {symptoms}.\n\n" + result["info"]
     return jsonify(result), 200
 
 
