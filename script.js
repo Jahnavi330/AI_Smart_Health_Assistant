@@ -198,12 +198,22 @@ async function sendChatMessage(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ "message": messageText })
     });
+    
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error("Server returned an invalid response. The backend might be deploying or offline.");
+    }
 
     const loadingEl = document.getElementById(loadingId);
-    if (loadingEl) msgContainer.removeChild(loadingEl);
-    
-    const data = await response.json();
-    if (!response.ok) throw new Error();    
+    if (loadingEl && loadingEl.parentNode === msgContainer) {
+      msgContainer.removeChild(loadingEl);
+    }
+
+    if (!response.ok) {
+      throw new Error(data.reply || data.error || "Server returned an error");
+    }
 
     const botMsg = document.createElement("div");
     botMsg.className = "message bot-msg animate-bubble";
@@ -214,12 +224,15 @@ async function sendChatMessage(event) {
     msgContainer.appendChild(botMsg);
 
   } catch (error) {
+    console.error("Chat error:", error);
     const loadingEl = document.getElementById(loadingId);
-    if (loadingEl) msgContainer.removeChild(loadingEl);
+    if (loadingEl && loadingEl.parentNode === msgContainer) {
+      msgContainer.removeChild(loadingEl);
+    }
 
     const errorMsg = document.createElement("div");
     errorMsg.className = "message bot-msg system-error";
-    errorMsg.innerHTML = `<i class="fas fa-exclamation-triangle msg-icon"></i><div class="msg-text">Connection down. Please verify server deployment settings.</div>`;
+    errorMsg.innerHTML = `<i class="fas fa-exclamation-triangle msg-icon"></i><div class="msg-text">${escapeHTML(error.message || "Connection down. Please verify server deployment settings.")}</div>`;
     msgContainer.appendChild(errorMsg);
   }
 

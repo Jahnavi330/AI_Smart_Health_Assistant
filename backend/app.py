@@ -151,20 +151,33 @@ def direct_ml_predict(symptoms):
         if hasattr(preds, "numpy"):
             preds = preds.numpy()
         print("Prediction returned")
-        idx = int(np.argmax(preds))
-        confidence = float(preds[0][idx])
-        conf_percentage = round(confidence * 100, 2)
         
-        if conf_percentage < 75.0:
+        # Get top 3 predictions
+        top_3_indices = np.argsort(preds[0])[-3:][::-1]
+        
+        top_predictions = []
+        for i in top_3_indices:
+            conf = round(float(preds[0][i]) * 100, 2)
+            top_predictions.append({"disease": labels[i], "confidence": conf})
+            
+        top_confidence = top_predictions[0]["confidence"]
+        top_disease = top_predictions[0]["disease"]
+        
+        info_text = "Top 3 possibilities:\n"
+        for idx, p in enumerate(top_predictions):
+            info_text += f"{idx+1}. {p['disease']} ({p['confidence']}%)\n"
+
+        if top_confidence < 75.0:
             return {
                 "disease": "Uncertain (Please provide more specific symptoms)",
-                "confidence": conf_percentage,
-                "info": "The symptoms provided are too generic to make a high-confidence prediction. Please add more specific symptoms."
+                "confidence": top_confidence,
+                "info": "Confidence is too low for a definitive prediction.\n\n" + info_text
             }
 
         return {
-            "disease": labels[idx],
-            "confidence": conf_percentage
+            "disease": top_disease,
+            "confidence": top_confidence,
+            "info": info_text
         }
     except Exception as e:
         print(f"ML prediction crash: {str(e)}")

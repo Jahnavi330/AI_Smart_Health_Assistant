@@ -60,23 +60,32 @@ def predict_disease(symptoms_text):
         X = text_to_vector(symptoms_text)
         preds = model.predict(X, verbose=0)[0]
 
-        # FIX 1: Explicitly force the raw index into a standard Python integer
-        idx = int(np.argmax(preds))
+        # Get top 3 predictions
+        top_3_indices = np.argsort(preds)[-3:][::-1]
         
-        # FIX 2: Safeguard tensor floating metrics explicitly to prevent serialization crashes
-        confidence_val = float(preds[idx])
-        conf_percentage = round(confidence_val * 100, 2)
+        top_predictions = []
+        for i in top_3_indices:
+            conf = round(float(preds[i]) * 100, 2)
+            top_predictions.append({"disease": str(labels[i]), "confidence": conf})
+            
+        top_confidence = top_predictions[0]["confidence"]
+        top_disease = top_predictions[0]["disease"]
+        
+        info_text = "Top 3 possibilities:\n"
+        for idx, p in enumerate(top_predictions):
+            info_text += f"{idx+1}. {p['disease']} ({p['confidence']}%)\n"
 
-        if conf_percentage < 75.0:
+        if top_confidence < 75.0:
             return {
                 "disease": "Uncertain (Please provide more specific symptoms)",
-                "confidence": conf_percentage,
-                "info": "The symptoms provided are too generic to make a high-confidence prediction. Please add more specific symptoms."
+                "confidence": top_confidence,
+                "info": "Confidence is too low for a definitive prediction.\n\n" + info_text
             }
 
         return {
-            "disease": str(labels[idx]),
-            "confidence": conf_percentage
+            "disease": top_disease,
+            "confidence": top_confidence,
+            "info": info_text
         }
     except Exception as e:
         print(f"INTERNAL ML ROUTE CRASH LOG: {str(e)}")
