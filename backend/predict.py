@@ -65,10 +65,18 @@ def predict_disease(symptoms_text):
         
         # FIX 2: Safeguard tensor floating metrics explicitly to prevent serialization crashes
         confidence_val = float(preds[idx])
+        conf_percentage = round(confidence_val * 100, 2)
+
+        if conf_percentage < 75.0:
+            return {
+                "disease": "Uncertain (Please provide more specific symptoms)",
+                "confidence": conf_percentage,
+                "info": "The symptoms provided are too generic to make a high-confidence prediction. Please add more specific symptoms."
+            }
 
         return {
             "disease": str(labels[idx]),
-            "confidence": round(confidence_val * 100, 2)
+            "confidence": conf_percentage
         }
     except Exception as e:
         print(f"INTERNAL ML ROUTE CRASH LOG: {str(e)}")

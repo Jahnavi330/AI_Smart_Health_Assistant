@@ -153,9 +153,18 @@ def direct_ml_predict(symptoms):
         print("Prediction returned")
         idx = int(np.argmax(preds))
         confidence = float(preds[0][idx])
+        conf_percentage = round(confidence * 100, 2)
+        
+        if conf_percentage < 75.0:
+            return {
+                "disease": "Uncertain (Please provide more specific symptoms)",
+                "confidence": conf_percentage,
+                "info": "The symptoms provided are too generic to make a high-confidence prediction. Please add more specific symptoms."
+            }
+
         return {
             "disease": labels[idx],
-            "confidence": round(confidence * 100, 2)
+            "confidence": conf_percentage
         }
     except Exception as e:
         print(f"ML prediction crash: {str(e)}")
